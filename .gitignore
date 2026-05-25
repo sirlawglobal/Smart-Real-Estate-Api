@@ -31,3 +31,8 @@ Thumbs.db
 
 # Testing
 /coverage
+
+/generated/prisma
+
+# Seed files
+/src/database/seeders/

@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model conversations {
+  id         Int        @id @default(autoincrement())
+  lead_id    Int
+  created_at DateTime   @default(now()) @db.DateTime(6)
+  leads      leads      @relation(fields: [lead_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_5c73048f6ad3d937f15765df499")
+  messages   messages[]
+
+  @@index([lead_id], map: "FK_5c73048f6ad3d937f15765df499")
+}
+
+model favorites {
+  id          Int        @id @default(autoincrement())
+  user_id     Int
+  property_id Int
+  created_at  DateTime   @default(now()) @db.DateTime(6)
+  users       users      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_35a6b05ee3b624d0de01ee50593")
+  properties  properties @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_6c9d2059f4ae253c262de11bba0")
+
+  @@unique([user_id, property_id], map: "IDX_ca292e89ddb91e78ca404a0d26")
+  @@index([property_id], map: "FK_6c9d2059f4ae253c262de11bba0")
+}
+
+model leads {
+  id                Int             @id @default(autoincrement())
+  property_id       Int?
+  customer_name     String          @db.VarChar(255)
+  customer_email    String          @db.VarChar(255)
+  customer_phone    String?         @db.VarChar(255)
+  message           String?         @db.Text
+  status            leads_status    @default(NEW)
+  score             Int             @default(0)
+  priority          leads_priority  @default(LOW)
+  assigned_agent_id Int?
+  created_at        DateTime        @default(now()) @db.DateTime(6)
+  updated_at        DateTime        @default(now()) @db.DateTime(6)
+  conversations     conversations[]
+  users             users?          @relation(fields: [assigned_agent_id], references: [id], onUpdate: NoAction, map: "FK_0fc7d6f9f2dbb677aeebb974b04")
+  properties        properties?     @relation(fields: [property_id], references: [id], onUpdate: NoAction, map: "FK_944e19e85c2bab99936ed423555")
+
+  @@index([assigned_agent_id], map: "FK_0fc7d6f9f2dbb677aeebb974b04")
+  @@index([property_id], map: "FK_944e19e85c2bab99936ed423555")
+}
+
+model messages {
+  id              Int           @id @default(autoincrement())
+  conversation_id Int
+  sender_id       Int?
+  content         String        @db.Text
+  created_at      DateTime      @default(now()) @db.DateTime(6)
+  users           users?        @relation(fields: [sender_id], references: [id], onUpdate: NoAction, map: "FK_22133395bd13b970ccd0c34ab22")
+  conversations   conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_3bc55a7c3f9ed54b520bb5cfe23")
+
+  @@index([sender_id], map: "FK_22133395bd13b970ccd0c34ab22")
+  @@index([conversation_id], map: "FK_3bc55a7c3f9ed54b520bb5cfe23")
+}
+
+model notifications {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  title      String   @db.VarChar(255)
+  message    String   @db.Text
+  read       Int      @default(0) @db.TinyInt
+  created_at DateTime @default(now()) @db.DateTime(6)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_9a8a82462cab47c73d25f49261f")
+
+  @@index([user_id], map: "FK_9a8a82462cab47c73d25f49261f")
+}
+
+model properties {
+  id               Int                        @id @default(autoincrement())
+  title            String                     @db.VarChar(255)
+  description      String                     @db.Text
+  price            Decimal                    @db.Decimal(18, 2)
+  city             String                     @db.VarChar(255)
+  state            String                     @db.VarChar(255)
+  address          String                     @db.VarChar(255)
+  bedrooms         Int                        @default(0)
+  bathrooms        Int                        @default(0)
+  property_type    properties_property_type   @default(HOUSE)
+  listing_type     properties_listing_type    @default(SALE)
+  approval_status  properties_approval_status @default(PENDING)
+  featured         Int                        @default(0) @db.TinyInt
+  rejection_reason String?                    @db.VarChar(255)
+  created_by       Int
+  created_at       DateTime                   @default(now()) @db.DateTime(6)
+  updated_at       DateTime                   @default(now()) @db.DateTime(6)
+  deleted_at       DateTime?                  @db.DateTime(6)
+  favorites        favorites[]
+  leads            leads[]
+  users            users                      @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_626629e699c43803798e6bed714")
+  property_images  property_images[]
+
+  @@index([created_by], map: "FK_626629e699c43803798e6bed714")
+}
+
+model property_images {
+  id          Int        @id @default(autoincrement())
+  property_id Int
+  image_url   String     @db.VarChar(255)
+  public_id   String?    @db.VarChar(255)
+  created_at  DateTime   @default(now()) @db.DateTime(6)
+  properties  properties @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_162a7701665354b4751ffb835e4")
+
+  @@index([property_id], map: "FK_162a7701665354b4751ffb835e4")
+}
+
+model users {
+  id                  Int             @id @default(autoincrement())
+  first_name          String          @db.VarChar(255)
+  last_name           String          @db.VarChar(255)
+  email               String          @unique(map: "IDX_97672ac88f789774dd47f7c8be") @db.VarChar(255)
+  phone               String?         @db.VarChar(255)
+  password            String          @db.VarChar(255)
+  role                users_role      @default(BUYER)
+  is_active           Int             @default(1) @db.TinyInt
+  reset_token         String?         @db.VarChar(255)
+  reset_token_expires DateTime?       @db.DateTime(0)
+  created_at          DateTime        @default(now()) @db.DateTime(6)
+  updated_at          DateTime        @default(now()) @db.DateTime(6)
+  favorites           favorites[]
+  leads               leads[]
+  messages            messages[]
+  notifications       notifications[]
+  properties          properties[]
+}
+
+enum leads_status {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CLOSED
+  LOST
+}
+
+enum users_role {
+  ADMIN
+  AGENT
+  BUYER
+}
+
+enum leads_priority {
+  LOW
+  MEDIUM
+  HOT
+}
+
+enum properties_property_type {
+  HOUSE
+  APARTMENT
+  DUPLEX
+  BUNGALOW
+  VILLA
+  LAND
+  COMMERCIAL
+  OFFICE
+}
+
+enum properties_listing_type {
+  SALE
+  RENT
+  SHORTLET
+}
+
+enum properties_approval_status {
+  PENDING
+  APPROVED
+  REJECTED
+}

@@ -28,7 +28,7 @@ export class SeedService {
     @InjectRepository(Message) private messageRepo: Repository<Message>,
     @InjectRepository(Favorite) private favoriteRepo: Repository<Favorite>,
     @InjectRepository(Notification) private notificationRepo: Repository<Notification>,
-  ) {}
+  ) { }
 
   async seed() {
     this.logger.log('Starting DB Seeding...');
@@ -36,39 +36,26 @@ export class SeedService {
     // Clear existing data (Be careful in production!)
     await this.clearDatabase();
 
-    // 1. Seed Users (1 Admin, 5 Agents, 14 Buyers)
+    // 1. Seed Users (1 Admin)
     const admin = await this.seedUsers();
-    
-    // 2. Seed Properties (50 properties)
-    const properties = await this.seedProperties();
-    
-    // 3. Seed Leads (100 leads)
-    const leads = await this.seedLeads(properties);
-
-    // 4. Seed Chat (20 conversations, 100 messages)
-    await this.seedChats(leads);
-
-    // 5. Seed Favorites & Notifications
-    await this.seedFavoritesAndNotifications(properties);
 
     this.logger.log('Seeding completed successfully!');
   }
 
   private async clearDatabase() {
     this.logger.log('Clearing database...');
-    await this.notificationRepo.delete({});
-    await this.favoriteRepo.delete({});
-    await this.messageRepo.delete({});
-    await this.conversationRepo.delete({});
-    await this.leadRepo.delete({});
-    await this.imageRepo.delete({});
-    await this.propertyRepo.delete({});
-    await this.userRepo.delete({});
+    await this.notificationRepo.createQueryBuilder().delete().execute();
+    await this.favoriteRepo.createQueryBuilder().delete().execute();
+    await this.messageRepo.createQueryBuilder().delete().execute();
+    await this.conversationRepo.createQueryBuilder().delete().execute();
+    await this.leadRepo.createQueryBuilder().delete().execute();
+    await this.imageRepo.createQueryBuilder().delete().execute();
+    await this.propertyRepo.createQueryBuilder().delete().execute();
+    await this.userRepo.createQueryBuilder().delete().execute();
   }
 
   private async seedUsers() {
     this.logger.log('Seeding Users...');
-    const users: User[] = [];
 
     // 1 Admin
     const adminPassword = await bcrypt.hash('Admin@123', 12);
@@ -81,41 +68,10 @@ export class SeedService {
       isActive: true,
       phone: '+2348000000000',
     });
-    users.push(await this.userRepo.save(admin));
+    const savedAdmin = await this.userRepo.save(admin);
     this.logger.log(`Admin created: admin@realestate.com / Admin@123`);
 
-    // 5 Agents
-    for (let i = 0; i < 5; i++) {
-      users.push(
-        this.userRepo.create({
-          firstName: faker.person.firstName(),
-          lastName: faker.person.lastName(),
-          email: faker.internet.email().toLowerCase(),
-          password: adminPassword, // Same password for ease of test
-          role: UserRole.AGENT,
-          isActive: true,
-          phone: faker.phone.number(),
-        })
-      );
-    }
-
-    // 14 Buyers
-    for (let i = 0; i < 14; i++) {
-      users.push(
-        this.userRepo.create({
-          firstName: faker.person.firstName(),
-          lastName: faker.person.lastName(),
-          email: faker.internet.email().toLowerCase(),
-          password: adminPassword,
-          role: UserRole.BUYER,
-          isActive: true,
-          phone: faker.phone.number(),
-        })
-      );
-    }
-
-    await this.userRepo.save(users.slice(1));
-    return admin;
+    return savedAdmin;
   }
 
   private async seedProperties() {
@@ -143,7 +99,7 @@ export class SeedService {
       });
 
       const savedProp = await this.propertyRepo.save(property);
-      
+
       // Images
       for (let j = 0; j < faker.number.int({ min: 2, max: 5 }); j++) {
         await this.imageRepo.save(
@@ -153,7 +109,7 @@ export class SeedService {
           })
         );
       }
-      
+
       properties.push(savedProp);
     }
 
@@ -163,7 +119,7 @@ export class SeedService {
   private async seedLeads(properties: Property[]) {
     this.logger.log('Seeding Leads...');
     const leads: Lead[] = [];
-    
+
     for (let i = 0; i < 100; i++) {
       const property = faker.helpers.arrayElement(properties);
       const lead = this.leadRepo.create({
@@ -186,14 +142,14 @@ export class SeedService {
   private async seedChats(leads: Lead[]) {
     this.logger.log('Seeding Chats...');
     const selectedLeads = faker.helpers.arrayElements(leads, 20);
-    
+
     for (const lead of selectedLeads) {
       const conversation = await this.conversationRepo.save(
         this.conversationRepo.create({ leadId: lead.id })
       );
 
       const agentId = lead.assignedAgentId;
-      
+
       for (let i = 0; i < 5; i++) {
         await this.messageRepo.save(
           this.messageRepo.create({
@@ -209,7 +165,7 @@ export class SeedService {
   private async seedFavoritesAndNotifications(properties: Property[]) {
     this.logger.log('Seeding Favorites & Notifications...');
     const buyers = await this.userRepo.find({ where: { role: UserRole.BUYER } });
-    
+
     // Favorites
     for (const buyer of buyers) {
       const favProps = faker.helpers.arrayElements(properties, faker.number.int({ min: 1, max: 5 }));

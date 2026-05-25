@@ -6,4 +6,6 @@ export default registerAs('database', () => ({
   username: process.env.DB_USERNAME || 'root',
   password: process.env.DB_PASSWORD || 'password',
   database: process.env.DB_DATABASE || 'realestate_db',
+  sslCa: process.env.DB_SSL_CA || undefined,
+  sslRejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true',
 }));
