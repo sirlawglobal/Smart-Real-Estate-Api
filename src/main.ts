@@ -23,7 +23,13 @@ async function bootstrap() {
       // Allow requests with no origin (like native mobile apps, Postman, curl)
       if (!origin) return callback(null, true);
       
-      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      const isAllowed =
+        allowedOrigins.indexOf(origin) !== -1 ||
+        allowedOrigins.includes('*') ||
+        nodeEnv !== 'production' || // Allow all in development/testing mode
+        origin.endsWith('.onrender.com'); // Allow all Render subdomains (backend docs and frontends)
+      
+      if (isAllowed) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
