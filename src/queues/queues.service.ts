@@ -14,19 +14,35 @@ export class QueuesService {
   ) {}
 
   async addEmailJob(data: any) {
-    this.logger.log(`Adding email job for ${data.to}`);
-    return this.emailQueue.add('sendEmail', data);
+    try {
+      this.logger.log(`Adding email job for ${data.to}`);
+      return await this.emailQueue.add('sendEmail', data);
+    } catch (error) {
+      this.logger.error(`Failed to queue email job: ${error.message}`, error.stack);
+    }
   }
 
   async addNotificationJob(data: any) {
-    return this.notificationQueue.add('sendNotification', data);
+    try {
+      return await this.notificationQueue.add('sendNotification', data);
+    } catch (error) {
+      this.logger.error(`Failed to queue notification job: ${error.message}`, error.stack);
+    }
   }
 
   async addLeadQualificationJob(data: any) {
-    return this.leadQualificationQueue.add('qualifyLead', data);
+    try {
+      return await this.leadQualificationQueue.add('qualifyLead', data);
+    } catch (error) {
+      this.logger.error(`Failed to queue lead qualification job: ${error.message}`, error.stack);
+    }
   }
 
   async addAiProcessingJob(data: any) {
-    return this.aiProcessingQueue.add('processAiTask', data);
+    try {
+      return await this.aiProcessingQueue.add('processAiTask', data);
+    } catch (error) {
+      this.logger.error(`Failed to queue AI processing job: ${error.message}`, error.stack);
+    }
   }
 }
