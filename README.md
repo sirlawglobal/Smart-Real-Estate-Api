@@ -12,10 +12,11 @@ A production-ready NestJS backend for an AI-powered real estate platform. Design
 5. [Setup & Installation](#setup--installation)
 6. [Seeding the Database](#seeding-the-database)
 7. [Environment Variables](#environment-variables)
-8. [API Endpoints Reference](#api-endpoints-reference)
-9. [Prisma Studio Database Inspector](#prisma-studio-database-inspector)
-10. [Testing](#testing)
-11. [Deployment on Render](#deployment-on-render)
+8. [API Documentation](#api-documentation)
+9. [API Endpoints Reference](#api-endpoints-reference)
+10. [Prisma Studio Database Inspector](#prisma-studio-database-inspector)
+11. [Testing](#testing)
+12. [Deployment on Render](#deployment-on-render)
 
 ---
 
@@ -158,6 +159,14 @@ MAIL_FROM="FX-App <your_email@gmail.com>"
 # Webhooks
 WHATSAPP_VERIFY_TOKEN=your_verify_token
 ```
+
+---
+
+## API Documentation
+
+Interactive Swagger API documentation is available at:
+* **Local Development**: [http://localhost:3000/docs](http://localhost:3000/docs)
+* **Live Production**: [https://smart-real-estate-api-puv0.onrender.com/docs](https://smart-real-estate-api-puv0.onrender.com/docs)
 
 ---
 
