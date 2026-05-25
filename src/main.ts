@@ -14,12 +14,21 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('app.port') || 3000;
   const nodeEnv = configService.get<string>('app.nodeEnv');
-  const frontendUrl = configService.get<string>('app.frontendUrl');
+  const allowedOrigins = configService.get<string[]>('app.allowedOrigins') || [];
 
   // Security
   app.use(helmet());
   app.enableCors({
-    origin: frontendUrl,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like native mobile apps, Postman, curl)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   });
 

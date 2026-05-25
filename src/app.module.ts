@@ -21,6 +21,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { AdminModule } from './admin/admin.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { HealthController } from './health.controller';
 
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -56,6 +57,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     AdminModule,
     NotificationsModule,
   ],
+  controllers: [HealthController],
   providers: [
     {
       provide: APP_PIPE,
