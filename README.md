@@ -103,9 +103,6 @@ To run the seeding:
 npm run seed
 ```
 
-**Default Admin Credentials:**
-* **Email**: `admin@realestate.com`
-* **Password**: `Admin@123`
 
 ---
 
