@@ -13,23 +13,23 @@ export class LeadQualificationProcessor {
   constructor(
     private readonly leadsService: LeadsService,
     private readonly aiService: AiService,
-  ) {}
+  ) { }
 
   @Process('qualifyLead')
   async handleQualifyLead(job: Job) {
-    this.logger.debug(`Processing qualification for lead ${job.data.leadId}`);
+    this.logger.log(`Processing qualification for lead ${job.data.leadId}`);
     try {
       const qualification = await this.aiService.qualifyLead(job.data.data);
       const { score, priority } = qualification.data;
-      
+
       const priorityEnum = priority as LeadPriority || LeadPriority.MEDIUM;
-      
+
       await this.leadsService.updateScoreAndPriority(
         job.data.leadId,
         score,
         priorityEnum,
       );
-      this.logger.debug(`Lead ${job.data.leadId} scored: ${score}, priority: ${priorityEnum}`);
+      this.logger.log(`Lead ${job.data.leadId} scored: ${score}, priority: ${priorityEnum}`);
     } catch (error) {
       this.logger.error(`Failed to qualify lead ${job.data.leadId}`, error.stack);
     }
@@ -56,7 +56,7 @@ export class EmailProcessor {
   @Process('sendEmail')
   async handleSendEmail(job: Job) {
     const { type, to, data } = job.data;
-    this.logger.debug(`Sending ${type} email to ${to}`);
+    this.logger.log(`Sending ${type} email to ${to}`);
 
     let subject = '';
     let html = '';
@@ -107,7 +107,7 @@ export class EmailProcessor {
         subject,
         html,
       });
-      this.logger.debug(`Email sent successfully to ${to}`);
+      this.logger.log(`Email sent successfully to ${to}`);
     } catch (error) {
       this.logger.error(`Failed to send email to ${to}: ${error.message}`, error.stack);
       throw error;
