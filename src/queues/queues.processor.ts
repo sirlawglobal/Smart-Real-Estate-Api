@@ -42,14 +42,23 @@ export class EmailProcessor {
   private transporter: nodemailer.Transporter;
 
   constructor() {
+    // Fix #2: Fail fast at startup if email credentials are not configured.
+    // Never fall back to hardcoded credentials in source code.
+    const user = process.env.MAIL_USER;
+    const pass = process.env.MAIL_PASSWORD;
+
+    if (!user || !pass) {
+      throw new Error(
+        'MAIL_USER and MAIL_PASSWORD environment variables are required. ' +
+        'Email queue processor cannot start without valid SMTP credentials.',
+      );
+    }
+
     this.transporter = nodemailer.createTransport({
       host: process.env.MAIL_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.MAIL_PORT || '587', 10),
       secure: process.env.MAIL_PORT === '465',
-      auth: {
-        user: process.env.MAIL_USER || 'akanjiayobami71@gmail.com',
-        pass: process.env.MAIL_PASSWORD || 'aewn ngao vvrn tjaa',
-      },
+      auth: { user, pass },
     });
   }
 

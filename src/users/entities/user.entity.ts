@@ -47,6 +47,16 @@ export class User {
   @Exclude()
   resetTokenExpires: Date | null;
 
+  /**
+   * Incremented on every password reset / change.
+   * The JWT payload includes this value (as `tv`); if they differ, the token is
+   * considered stale and the request is rejected — this invalidates all
+   * previously issued tokens without a blocklist round-trip.
+   */
+  @Column({ name: 'token_version', type: 'int', default: 0 })
+  @Exclude()
+  tokenVersion: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

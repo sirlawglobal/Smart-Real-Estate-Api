@@ -1,22 +1,21 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { LeadRepository } from './repositories/lead.repository';
 import { Lead } from './entities/lead.entity';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadStatusDto } from './dto/update-lead-status.dto';
 import { LeadFilterDto } from './dto/lead-filter.dto';
-import { LeadStatus, LeadPriority } from './enums/lead.enum';
+import { LeadPriority } from './enums/lead.enum';
 import { User } from '../users/entities/user.entity';
 import { UserRole } from '../users/enums/user-role.enum';
 import { paginate } from '../common/utils/pagination.util';
 import { PropertiesService } from '../properties/properties.service';
+import { EVENTS } from '../events/event-names';
 
 @Injectable()
 export class LeadsService {
   constructor(
-    @InjectRepository(Lead)
-    private readonly leadRepo: Repository<Lead>,
+    private readonly leadRepo: LeadRepository,
     private readonly propertiesService: PropertiesService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -30,10 +29,7 @@ export class LeadsService {
     }
 
     const saved = await this.leadRepo.save(lead);
-    
-    // Trigger AI qualification event
-    this.eventEmitter.emit('lead.created', { lead: saved });
-    
+    this.eventEmitter.emit(EVENTS.LEAD_CREATED, { lead: saved });
     return saved;
   }
 
@@ -46,24 +42,15 @@ export class LeadsService {
       .leftJoinAndSelect('lead.property', 'property')
       .leftJoinAndSelect('lead.assignedAgent', 'assignedAgent');
 
-    // Agents can only see their leads
     if (user.role === UserRole.AGENT) {
       qb.andWhere('lead.assignedAgentId = :userId', { userId: user.id });
     } else if (filter.assignedAgentId && user.role === UserRole.ADMIN) {
       qb.andWhere('lead.assignedAgentId = :agentId', { agentId: filter.assignedAgentId });
     }
 
-    if (filter.status) {
-      qb.andWhere('lead.status = :status', { status: filter.status });
-    }
-    
-    if (filter.priority) {
-      qb.andWhere('lead.priority = :priority', { priority: filter.priority });
-    }
-
-    if (filter.propertyId) {
-      qb.andWhere('lead.propertyId = :propertyId', { propertyId: filter.propertyId });
-    }
+    if (filter.status) qb.andWhere('lead.status = :status', { status: filter.status });
+    if (filter.priority) qb.andWhere('lead.priority = :priority', { priority: filter.priority });
+    if (filter.propertyId) qb.andWhere('lead.propertyId = :propertyId', { propertyId: filter.propertyId });
 
     qb.orderBy('lead.createdAt', 'DESC').skip(skip).take(limit);
 
@@ -93,7 +80,6 @@ export class LeadsService {
   }
 
   async getMyLeads(user: User, filter: LeadFilterDto) {
-    // Force agent id filter
     return this.findAll({ ...filter, assignedAgentId: user.id }, user);
   }
 
@@ -102,15 +88,15 @@ export class LeadsService {
   }
 
   async updateScoreAndPriority(id: number, score: number, priority: LeadPriority) {
-    const lead = await this.leadRepo.findOne({ where: { id } });
+    const lead = await this.leadRepo.findById(id);
     if (lead) {
       lead.score = score;
       lead.priority = priority;
-      
+
       if (priority === LeadPriority.HOT) {
-        this.eventEmitter.emit('lead.qualified', { lead });
+        this.eventEmitter.emit(EVENTS.LEAD_QUALIFIED, { lead });
       }
-      
+
       await this.leadRepo.save(lead);
     }
   }

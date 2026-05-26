@@ -5,6 +5,8 @@ import { ChatController } from './chat.controller';
 import { ConversationsController } from './conversations.controller';
 import { Conversation } from './entities/conversation.entity';
 import { Message } from './entities/message.entity';
+import { ConversationRepository } from './repositories/conversation.repository';
+import { MessageRepository } from './repositories/message.repository';
 import { LeadsModule } from '../leads/leads.module';
 
 @Module({
@@ -13,7 +15,7 @@ import { LeadsModule } from '../leads/leads.module';
     LeadsModule,
   ],
   controllers: [ChatController, ConversationsController],
-  providers: [ChatService],
+  providers: [ChatService, ConversationRepository, MessageRepository],
   exports: [ChatService],
 })
 export class ChatModule {}

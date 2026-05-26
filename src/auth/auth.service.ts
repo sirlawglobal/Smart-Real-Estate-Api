@@ -2,7 +2,6 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
-  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -15,7 +14,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { User } from '../users/entities/user.entity';
-import * as bcrypt from 'bcrypt';
+import { EVENTS } from '../events/event-names';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -32,7 +31,7 @@ export class AuthService {
     const user = await this.usersService.create(createUserDto);
     const token = this.generateToken(user);
 
-    this.eventEmitter.emit('user.registered', { user });
+    this.eventEmitter.emit(EVENTS.USER_REGISTERED, { user });
 
     return {
       message: 'Registration successful',
@@ -42,18 +41,11 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     const user = await this.usersService.findByEmail(loginDto.email);
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    if (!user.isActive) {
-      throw new UnauthorizedException('Account is deactivated');
-    }
+    if (!user) throw new UnauthorizedException('Invalid credentials');
+    if (!user.isActive) throw new UnauthorizedException('Account is deactivated');
 
     const isValid = await user.validatePassword(loginDto.password);
-    if (!isValid) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    if (!isValid) throw new UnauthorizedException('Invalid credentials');
 
     const token = this.generateToken(user);
     return {
@@ -75,10 +67,9 @@ export class AuthService {
 
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
     const user = await this.usersService.findByEmail(dto.email);
-    if (!user) {
-      // Return success regardless to prevent email enumeration
-      return { message: 'If the email exists, a reset link has been sent' };
-    }
+
+    // Always return success to prevent email enumeration attacks
+    if (!user) return { message: 'If the email exists, a reset link has been sent' };
 
     const token = uuidv4();
     const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
@@ -87,24 +78,27 @@ export class AuthService {
     user.resetTokenExpires = expires;
     await this.usersService.save(user);
 
-    this.eventEmitter.emit('auth.forgot-password', { user, token });
+    this.eventEmitter.emit(EVENTS.AUTH_FORGOT_PASSWORD, { user, token });
 
     return { message: 'If the email exists, a reset link has been sent' };
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
-    const users = await this.usersService.findAll();
-    const user = users.find(
-      (u) => u.resetToken === dto.token && u.resetTokenExpires && u.resetTokenExpires > new Date(),
-    );
+    const user = await this.usersService.findByResetToken(dto.token);
 
-    if (!user) {
+    if (!user || !user.resetTokenExpires || user.resetTokenExpires <= new Date()) {
       throw new BadRequestException('Invalid or expired reset token');
     }
 
+    // Assign raw password — @BeforeUpdate on User entity will hash it
     user.password = dto.password;
     user.resetToken = null;
     user.resetTokenExpires = null;
+
+    // Fix #8: Bump tokenVersion to invalidate ALL previously issued JWTs for this user.
+    // Any token with an older `tv` claim will be rejected in JwtStrategy.validate().
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1;
+
     await this.usersService.save(user);
 
     return { message: 'Password reset successfully' };
@@ -112,11 +106,15 @@ export class AuthService {
 
   async changePassword(user: User, dto: ChangePasswordDto): Promise<{ message: string }> {
     const isValid = await user.validatePassword(dto.currentPassword);
-    if (!isValid) {
-      throw new UnauthorizedException('Current password is incorrect');
-    }
+    if (!isValid) throw new UnauthorizedException('Current password is incorrect');
 
-    user.password = await bcrypt.hash(dto.newPassword, 12);
+    // Fix #11: Assign raw password — @BeforeUpdate hook will hash it.
+    // Previously bcrypt.hash() was called here AND in the entity hook, causing double-hashing.
+    user.password = dto.newPassword;
+
+    // Bump tokenVersion to force re-login on all other devices after a password change
+    user.tokenVersion = (user.tokenVersion ?? 0) + 1;
+
     await this.usersService.save(user);
 
     return { message: 'Password changed successfully' };
@@ -127,7 +125,13 @@ export class AuthService {
   }
 
   private generateToken(user: User): string {
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      // Fix #8: Include tokenVersion in JWT so stale tokens can be rejected
+      tv: user.tokenVersion ?? 0,
+    };
     return this.jwtService.sign(payload);
   }
 

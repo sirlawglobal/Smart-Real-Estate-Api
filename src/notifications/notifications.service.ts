@@ -1,59 +1,46 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { OnEvent } from '@nestjs/event-emitter';
+import { NotificationRepository } from './repositories/notification.repository';
 import { Notification } from './entities/notification.entity';
 import { User } from '../users/entities/user.entity';
-import { OnEvent } from '@nestjs/event-emitter';
+import { EVENTS } from '../events/event-names';
 
 @Injectable()
 export class NotificationsService {
-  constructor(
-    @InjectRepository(Notification)
-    private readonly notificationRepo: Repository<Notification>,
-  ) {}
+  constructor(private readonly notificationRepo: NotificationRepository) {}
 
   async getNotifications(user: User): Promise<Notification[]> {
-    return this.notificationRepo.find({
-      where: { userId: user.id },
-      order: { createdAt: 'DESC' },
-    });
+    return this.notificationRepo.findByUser(user.id);
   }
 
   async markAsRead(id: number, user: User): Promise<Notification> {
-    const notification = await this.notificationRepo.findOne({
-      where: { id, userId: user.id },
-    });
-
-    if (!notification) {
-      throw new NotFoundException(`Notification #${id} not found`);
-    }
+    const notification = await this.notificationRepo.findByWhere({
+      id,
+      userId: user.id,
+    } as any);
+    if (!notification) throw new NotFoundException(`Notification #${id} not found`);
 
     notification.read = true;
     return this.notificationRepo.save(notification);
   }
 
   async markAllAsRead(user: User): Promise<{ message: string }> {
-    await this.notificationRepo.update(
-      { userId: user.id, read: false },
-      { read: true },
+    await this.notificationRepo.updateWhere(
+      { userId: user.id, read: false } as any,
+      { read: true } as any,
     );
     return { message: 'All notifications marked as read' };
   }
 
   async createNotification(userId: number, title: string, message: string): Promise<Notification> {
-    const notification = this.notificationRepo.create({
-      userId,
-      title,
-      message,
-    });
-    return this.notificationRepo.save(notification);
+    return this.notificationRepo.createAndSave({ userId, title, message });
   }
 
-  // --- Event Listeners ---
+  // ── Event Listeners ───────────────────────────────────────────────────────
 
-  @OnEvent('lead.created')
+  @OnEvent(EVENTS.LEAD_CREATED)
   async handleLeadCreatedEvent(payload: any) {
-    const lead = payload.lead;
+    const { lead } = payload;
     if (lead.assignedAgentId) {
       await this.createNotification(
         lead.assignedAgentId,
@@ -63,9 +50,9 @@ export class NotificationsService {
     }
   }
 
-  @OnEvent('property.approved')
+  @OnEvent(EVENTS.PROPERTY_APPROVED)
   async handlePropertyApprovedEvent(payload: any) {
-    const property = payload.property;
+    const { property } = payload;
     await this.createNotification(
       property.createdById,
       'Property Approved',
@@ -73,9 +60,9 @@ export class NotificationsService {
     );
   }
 
-  @OnEvent('property.rejected')
+  @OnEvent(EVENTS.PROPERTY_REJECTED)
   async handlePropertyRejectedEvent(payload: any) {
-    const property = payload.property;
+    const { property } = payload;
     await this.createNotification(
       property.createdById,
       'Property Rejected',
@@ -83,14 +70,14 @@ export class NotificationsService {
     );
   }
 
-  @OnEvent('chat.message_sent')
-  async handleChatMessageSentEvent(payload: any) {
-    // Ideally we notify the other participant. For MVP we can skip or implement basic logic.
+  @OnEvent(EVENTS.CHAT_MESSAGE_SENT)
+  async handleChatMessageSentEvent(_payload: any) {
+    // Reserved for future real-time notification implementation
   }
 
-  @OnEvent('user.role_changed')
+  @OnEvent(EVENTS.USER_ROLE_CHANGED)
   async handleRoleChangedEvent(payload: any) {
-    const user = payload.user;
+    const { user } = payload;
     await this.createNotification(
       user.id,
       'Role Updated',

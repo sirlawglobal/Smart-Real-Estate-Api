@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { QueuesService } from '../queues/queues.service';
+import { EVENTS } from './event-names';
 
 @Injectable()
 export class EventsService {
@@ -8,7 +9,7 @@ export class EventsService {
 
   constructor(private readonly queuesService: QueuesService) {}
 
-  @OnEvent('user.registered')
+  @OnEvent(EVENTS.USER_REGISTERED)
   async handleUserRegistered(payload: any) {
     this.logger.log(`User registered event for ${payload.user.email}`);
     await this.queuesService.addEmailJob({
@@ -18,8 +19,9 @@ export class EventsService {
     });
   }
 
-  @OnEvent('auth.forgot-password')
+  @OnEvent(EVENTS.AUTH_FORGOT_PASSWORD)
   async handleForgotPassword(payload: any) {
+    this.logger.log(`Forgot password event for ${payload.user.email}`);
     await this.queuesService.addEmailJob({
       type: 'reset-password',
       to: payload.user.email,
@@ -27,10 +29,9 @@ export class EventsService {
     });
   }
 
-  @OnEvent('lead.created')
+  @OnEvent(EVENTS.LEAD_CREATED)
   async handleLeadCreated(payload: any) {
     this.logger.log(`Lead created event for ${payload.lead.customerName}`);
-    // Queue AI qualification for this lead
     await this.queuesService.addLeadQualificationJob({
       leadId: payload.lead.id,
       data: {

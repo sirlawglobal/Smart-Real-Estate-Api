@@ -14,7 +14,8 @@ export class LoggingInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const req = context.switchToHttp().getRequest();
-    const { method, url, body, user } = req;
+    // body intentionally excluded — never log request bodies (passwords, tokens = PII)
+    const { method, url, user } = req;
     const now = Date.now();
 
     this.logger.log(

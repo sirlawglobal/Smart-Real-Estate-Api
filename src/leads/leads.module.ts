@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { LeadsService } from './leads.service';
 import { LeadsController } from './leads.controller';
 import { Lead } from './entities/lead.entity';
+import { LeadRepository } from './repositories/lead.repository';
 import { PropertiesModule } from '../properties/properties.module';
 
 @Module({
@@ -11,7 +12,7 @@ import { PropertiesModule } from '../properties/properties.module';
     PropertiesModule,
   ],
   controllers: [LeadsController],
-  providers: [LeadsService],
-  exports: [LeadsService],
+  providers: [LeadsService, LeadRepository],
+  exports: [LeadsService, LeadRepository],
 })
 export class LeadsModule {}

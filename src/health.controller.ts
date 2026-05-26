@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { Public } from './common/decorators/public.decorator';
 
@@ -11,7 +11,6 @@ export class HealthController {
   async check() {
     const startTime = Date.now();
     try {
-      // Run a simple query to check connectivity and keep the DB warm
       await this.dataSource.query('SELECT 1');
       const duration = Date.now() - startTime;
       return {
@@ -21,12 +20,18 @@ export class HealthController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      return {
-        status: 'DOWN',
-        database: 'DISCONNECTED',
-        error: error.message,
-        timestamp: new Date().toISOString(),
-      };
+      // Return 503 so uptime monitors (Render, UptimeRobot, Datadog, etc.)
+      // correctly detect an outage instead of seeing 200 OK.
+      throw new HttpException(
+        {
+          status: 'DOWN',
+          database: 'DISCONNECTED',
+          error: error.message,
+          timestamp: new Date().toISOString(),
+        },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
     }
   }
 }
+

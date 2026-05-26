@@ -3,6 +3,7 @@ import { UsersService } from '../users/users.service';
 import { PropertiesService } from '../properties/properties.service';
 import { UserRole } from '../users/enums/user-role.enum';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EVENTS } from '../events/event-names';
 
 @Injectable()
 export class AdminService {
@@ -32,7 +33,7 @@ export class AdminService {
     }
 
     const updated = await this.usersService.updateRole(id, role);
-    this.eventEmitter.emit('user.role_changed', { user: updated });
+    this.eventEmitter.emit(EVENTS.USER_ROLE_CHANGED, { user: updated });
     return updated;
   }
 

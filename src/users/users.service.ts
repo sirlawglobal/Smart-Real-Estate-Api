@@ -1,6 +1,5 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Injectable, ConflictException } from '@nestjs/common';
+import { UserRepository } from './repositories/user.repository';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -8,69 +7,55 @@ import { UserRole } from './enums/user-role.enum';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-  ) {}
+  constructor(private readonly userRepo: UserRepository) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const existingUser = await this.userRepository.findOne({
-      where: { email: createUserDto.email },
-    });
-    if (existingUser) {
-      throw new ConflictException('Email already in use');
-    }
+    const existing = await this.userRepo.findByEmail(createUserDto.email);
+    if (existing) throw new ConflictException('Email already in use');
 
-    const user = this.userRepository.create({
+    return this.userRepo.createAndSave({
       ...createUserDto,
       role: UserRole.BUYER,
     });
-    return this.userRepository.save(user);
   }
 
   async findAll(): Promise<User[]> {
-    return this.userRepository.find({
-      order: { createdAt: 'DESC' },
-    });
+    return this.userRepo.findAll({ order: { createdAt: 'DESC' } });
   }
 
   async findOne(id: number): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) throw new NotFoundException(`User #${id} not found`);
-    return user;
+    return this.userRepo.findByIdOrFail(id, 'User');
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { email } });
+    return this.userRepo.findByEmail(email);
+  }
+
+  async findByResetToken(resetToken: string): Promise<User | null> {
+    return this.userRepo.findByResetToken(resetToken);
   }
 
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.findOne(id);
-    Object.assign(user, updateUserDto);
-    return this.userRepository.save(user);
+    return this.userRepo.update(id, updateUserDto);
   }
 
   async updateRole(id: number, role: UserRole): Promise<User> {
-    const user = await this.findOne(id);
-    user.role = role;
-    return this.userRepository.save(user);
+    return this.userRepo.update(id, { role } as any);
   }
 
   async setActive(id: number, isActive: boolean): Promise<User> {
-    const user = await this.findOne(id);
-    user.isActive = isActive;
-    return this.userRepository.save(user);
+    return this.userRepo.update(id, { isActive } as any);
   }
 
   async save(user: User): Promise<User> {
-    return this.userRepository.save(user);
+    return this.userRepo.save(user);
   }
 
   async countByRole(role: UserRole): Promise<number> {
-    return this.userRepository.count({ where: { role } });
+    return this.userRepo.countByRole(role);
   }
 
   async countAll(): Promise<number> {
-    return this.userRepository.count();
+    return this.userRepo.count();
   }
 }
