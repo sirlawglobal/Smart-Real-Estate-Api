@@ -54,12 +54,18 @@ export class EmailProcessor {
       );
     }
 
-    this.transporter = nodemailer.createTransport({
+    // Typed as `any` because `socketOptions` is a valid nodemailer runtime field
+    // passed to net.createConnection(), but is not reflected in @types/nodemailer.
+    // family: 4 forces IPv4 to avoid ENETUNREACH when smtp.gmail.com resolves
+    // to an IPv6 address that the host network cannot reach.
+    const transportOptions: any = {
       host: process.env.MAIL_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.MAIL_PORT || '587', 10),
       secure: process.env.MAIL_PORT === '465',
       auth: { user, pass },
-    });
+      socketOptions: { family: 4 },
+    };
+    this.transporter = nodemailer.createTransport(transportOptions);
   }
 
   @Process('sendEmail')
