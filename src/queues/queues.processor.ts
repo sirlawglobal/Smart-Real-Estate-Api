@@ -124,7 +124,7 @@ export class EmailProcessor {
           ? { name: fromMatch[1] || 'FX-App', email: fromMatch[2] }
           : { name: 'FX-App', email: mailFrom };
 
-        await axios.post(
+        const response = await axios.post(
           'https://api.brevo.com/v3/smtp/email',
           {
             sender,
@@ -140,7 +140,7 @@ export class EmailProcessor {
             },
           }
         );
-        this.logger.log(`Email sent successfully via Brevo REST API to ${to}`);
+        this.logger.log(`Email sent successfully via Brevo REST API to ${to}. Response: ${JSON.stringify(response.data)}`);
       } else {
         await this.transporter.sendMail({
           from: mailFrom,
