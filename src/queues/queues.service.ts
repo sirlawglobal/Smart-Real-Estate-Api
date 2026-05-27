@@ -16,7 +16,15 @@ export class QueuesService {
   async addEmailJob(data: any) {
     try {
       this.logger.log(`Adding email job for ${data.to}`);
-      return await this.emailQueue.add('sendEmail', data);
+      return await this.emailQueue.add('sendEmail', data, {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000,
+        },
+        removeOnComplete: true,
+        removeOnFail: 100,
+      });
     } catch (error) {
       this.logger.error(`Failed to queue email job: ${error.message}`, error.stack);
     }
@@ -24,7 +32,15 @@ export class QueuesService {
 
   async addNotificationJob(data: any) {
     try {
-      return await this.notificationQueue.add('sendNotification', data);
+      return await this.notificationQueue.add('sendNotification', data, {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 3000,
+        },
+        removeOnComplete: true,
+        removeOnFail: 100,
+      });
     } catch (error) {
       this.logger.error(`Failed to queue notification job: ${error.message}`, error.stack);
     }
@@ -32,7 +48,15 @@ export class QueuesService {
 
   async addLeadQualificationJob(data: any) {
     try {
-      return await this.leadQualificationQueue.add('qualifyLead', data);
+      return await this.leadQualificationQueue.add('qualifyLead', data, {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000,
+        },
+        removeOnComplete: true,
+        removeOnFail: 100,
+      });
     } catch (error) {
       this.logger.error(`Failed to queue lead qualification job: ${error.message}`, error.stack);
     }
@@ -40,7 +64,15 @@ export class QueuesService {
 
   async addAiProcessingJob(data: any) {
     try {
-      return await this.aiProcessingQueue.add('processAiTask', data);
+      return await this.aiProcessingQueue.add('processAiTask', data, {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000,
+        },
+        removeOnComplete: true,
+        removeOnFail: 100,
+      });
     } catch (error) {
       this.logger.error(`Failed to queue AI processing job: ${error.message}`, error.stack);
     }
