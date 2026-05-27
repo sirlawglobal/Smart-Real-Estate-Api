@@ -2,6 +2,7 @@ import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import * as nodemailer from 'nodemailer';
+import axios from 'axios';
 import { LeadsService } from '../leads/leads.service';
 import { AiService } from '../ai/ai.service';
 import { LeadPriority } from '../leads/enums/lead.enum';
@@ -116,13 +117,39 @@ export class EmailProcessor {
     }
 
     try {
-      await this.transporter.sendMail({
-        from: mailFrom,
-        to,
-        subject,
-        html,
-      });
-      this.logger.log(`Email sent successfully to ${to}`);
+      if (process.env.MAIL_HOST === 'smtp-relay.brevo.com') {
+        const pass = process.env.MAIL_PASSWORD;
+        const fromMatch = mailFrom.match(/^(?:"?([^"]*)"?\s)?<([^>]+)>/);
+        const sender = fromMatch
+          ? { name: fromMatch[1] || 'FX-App', email: fromMatch[2] }
+          : { name: 'FX-App', email: mailFrom };
+
+        await axios.post(
+          'https://api.brevo.com/v3/smtp/email',
+          {
+            sender,
+            to: [{ email: to }],
+            subject,
+            htmlContent: html,
+          },
+          {
+            headers: {
+              'accept': 'application/json',
+              'api-key': pass,
+              'content-type': 'application/json',
+            },
+          }
+        );
+        this.logger.log(`Email sent successfully via Brevo REST API to ${to}`);
+      } else {
+        await this.transporter.sendMail({
+          from: mailFrom,
+          to,
+          subject,
+          html,
+        });
+        this.logger.log(`Email sent successfully to ${to}`);
+      }
     } catch (error) {
       this.logger.error(`Failed to send email to ${to}: ${error.message}`, error.stack);
       throw error;
