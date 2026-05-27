@@ -58,4 +58,11 @@ export class UsersService {
   async countAll(): Promise<number> {
     return this.userRepo.count();
   }
+
+  async findRecent(limit: number): Promise<User[]> {
+    return this.userRepo.findAll({
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
+  }
 }

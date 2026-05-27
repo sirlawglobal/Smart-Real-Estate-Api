@@ -223,6 +223,13 @@ export class PropertiesService {
     return this.propertyRepo.count();
   }
 
+  async findRecent(limit: number): Promise<Property[]> {
+    return this.propertyRepo.findAll({
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
+  }
+
   async findForRecommendations(filters: {
     city?: string;
     maxPrice?: number;

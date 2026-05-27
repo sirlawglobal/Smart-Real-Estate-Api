@@ -4,6 +4,7 @@ import { PropertiesService } from '../properties/properties.service';
 import { LeadsService } from '../leads/leads.service';
 import { CacheService } from '../cache/cache.service';
 import { UserRole } from '../users/enums/user-role.enum';
+import { LeadStatus } from '../leads/enums/lead.enum';
 
 @Injectable()
 export class DashboardService {
@@ -46,31 +47,69 @@ export class DashboardService {
   }
 
   async getRecentActivities() {
-    // This is a placeholder for real recent activities
-    // In a real app, this could come from an audit log table or aggregated recent rows
     const cacheKey = 'dashboard:recent_activities';
     const cached = await this.cacheService.get(cacheKey);
     if (cached) return cached;
 
-    // Simulate fetching recent activities
-    const activities = [
-      { type: 'property_created', message: 'New property listed in Lekki', timestamp: new Date() },
-      { type: 'lead_created', message: 'New lead for Property #1', timestamp: new Date() },
-      { type: 'message_received', message: 'New message from John Doe', timestamp: new Date() },
-      { type: 'property_approved', message: 'Property #5 has been approved', timestamp: new Date() },
-    ];
+    const [recentProperties, recentLeads, recentUsers] = await Promise.all([
+      this.propertiesService.findRecent(5),
+      this.leadsService.findRecent(5),
+      this.usersService.findRecent(5),
+    ]);
 
-    await this.cacheService.set(cacheKey, activities, 60);
-    return activities;
+    const activities: any[] = [];
+
+    recentProperties.forEach(p => {
+      activities.push({
+        type: 'property_created',
+        message: `New property listed: "${p.title}" in ${p.city}`,
+        timestamp: p.createdAt,
+      });
+    });
+
+    recentLeads.forEach(l => {
+      activities.push({
+        type: 'lead_created',
+        message: `New lead created for property: "${l.property?.title || 'Unknown Property'}" by ${l.customerName}`,
+        timestamp: l.createdAt,
+      });
+    });
+
+    recentUsers.forEach(u => {
+      activities.push({
+        type: 'user_registered',
+        message: `New user registered: ${u.firstName} ${u.lastName} (${u.role})`,
+        timestamp: u.createdAt,
+      });
+    });
+
+    // Sort by timestamp descending
+    activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+    // Take top 5
+    const topActivities = activities.slice(0, 5);
+
+    await this.cacheService.set(cacheKey, topActivities, 60);
+    return topActivities;
   }
 
   async getLeadAnalytics() {
-    // Mock analytics
+    const [newLeads, qualifiedLeads, closedLeads, totalLeads] = await Promise.all([
+      this.leadsService.countByStatus(LeadStatus.NEW),
+      this.leadsService.countByStatus(LeadStatus.QUALIFIED),
+      this.leadsService.countByStatus(LeadStatus.CLOSED),
+      this.leadsService.countAll(),
+    ]);
+
+    const conversionRate = totalLeads > 0 
+      ? parseFloat(((closedLeads / totalLeads) * 100).toFixed(1)) 
+      : 0;
+
     return {
-      newLeads: 45,
-      qualifiedLeads: 20,
-      closedLeads: 5,
-      conversionRate: 11.1, // 5 / 45
+      newLeads,
+      qualifiedLeads,
+      closedLeads,
+      conversionRate,
     };
   }
 }

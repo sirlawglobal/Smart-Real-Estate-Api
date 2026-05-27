@@ -5,7 +5,7 @@ import { Lead } from './entities/lead.entity';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadStatusDto } from './dto/update-lead-status.dto';
 import { LeadFilterDto } from './dto/lead-filter.dto';
-import { LeadPriority } from './enums/lead.enum';
+import { LeadPriority, LeadStatus } from './enums/lead.enum';
 import { User } from '../users/entities/user.entity';
 import { UserRole } from '../users/enums/user-role.enum';
 import { paginate } from '../common/utils/pagination.util';
@@ -103,5 +103,17 @@ export class LeadsService {
 
   async countAll(): Promise<number> {
     return this.leadRepo.count();
+  }
+
+  async countByStatus(status: LeadStatus): Promise<number> {
+    return this.leadRepo.count({ status });
+  }
+
+  async findRecent(limit: number): Promise<Lead[]> {
+    return this.leadRepo.findAll({
+      order: { createdAt: 'DESC' },
+      take: limit,
+      relations: { property: true },
+    });
   }
 }
