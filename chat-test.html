@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real Estate AI Platform - Chat Testing Client</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- Socket.io Client CDN -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --panel-bg: rgba(17, 24, 39, 0.7);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --accent-primary: #8b5cf6;
+      --accent-secondary: #3b82f6;
+      --accent-success: #10b981;
+      --accent-warning: #f59e0b;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --font-display: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 40%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #a78bfa 0%, #60a5fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      flex-grow: 1;
+    }
+
+    @media (max-width: 900px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .panel-title {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      transition: all 0.3s ease;
+    }
+
+    .status-badge.connected {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-success);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input, textarea {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+      margin-bottom: 16px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px 20px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-primary) 0%, #7c3aed 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .console-logs {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+      flex-grow: 1;
+      overflow-y: auto;
+      max-height: 250px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .log-entry {
+      line-height: 1.4;
+    }
+
+    .log-info { color: #60a5fa; }
+    .log-success { color: var(--accent-success); }
+    .log-warn { color: var(--accent-warning); }
+    .log-error { color: #f87171; }
+
+    .chat-area {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 350px;
+    }
+
+    .messages-list {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      flex-grow: 1;
+      overflow-y: auto;
+      max-height: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .msg-bubble {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      position: relative;
+    }
+
+    .msg-incoming {
+      background: rgba(255, 255, 255, 0.08);
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+    }
+
+    .msg-outgoing {
+      background: linear-gradient(135deg, var(--accent-secondary) 0%, #2563eb 100%);
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+    }
+
+    .msg-meta {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    .badge-user {
+      position: absolute;
+      top: -18px;
+      left: 4px;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Chat & WebSocket Test Utility</h1>
+    <p>Test real-time event broadcasting and REST API messaging for Smart Real Estate Platform</p>
+  </header>
+
+  <div class="container">
+    
+    <!-- LEFT PANEL: Connection Settings & WebSockets -->
+    <div class="panel">
+      <div class="panel-title">
+        <span>🔌 WebSocket Connection</span>
+        <span id="socket-status" class="status-badge">Disconnected</span>
+      </div>
+
+      <div class="form-group">
+        <label for="server-url">Server Base URL</label>
+        <input type="text" id="server-url" value="http://localhost:3000">
+      </div>
+
+      <div class="form-group">
+        <label for="jwt-token">JWT Bearer Token (Optional)</label>
+        <textarea id="jwt-token" rows="3" placeholder="Paste your authentication token here (exclude 'Bearer ' prefix)..."></textarea>
+      </div>
+
+      <div class="btn-group">
+        <button id="btn-connect" class="btn-primary">Connect Socket</button>
+        <button id="btn-disconnect" class="btn-secondary">Disconnect</button>
+      </div>
+
+      <div class="form-group" style="margin-top: 8px;">
+        <label for="room-id">Conversation ID (Room)</label>
+        <input type="number" id="room-id" value="1" placeholder="e.g. 1">
+      </div>
+      
+      <button id="btn-join" class="btn-secondary" style="margin-bottom: 20px;">Join Conversation Room</button>
+
+      <label>WebSocket Log Console</label>
+      <div id="console-logs" class="console-logs">
+        <div class="log-entry log-info">> Client loaded. Click 'Connect Socket' to begin.</div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: Send & Receive Messages -->
+    <div class="panel">
+      <div class="panel-title">
+        <span>💬 Conversation Chat Room</span>
+      </div>
+
+      <div class="chat-area">
+        <label>Real-Time Messages</label>
+        <div id="messages-list" class="messages-list">
+          <div style="text-align: center; color: var(--text-muted); margin-top: auto; margin-bottom: auto; font-size: 0.9rem;">
+            Join a conversation room to view real-time messages.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="msg-content">Type Message (Sends via POST API)</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="msg-content" placeholder="Type your message here..." disabled>
+            <button id="btn-send" class="btn-primary" style="flex: 0 0 100px;" disabled>Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let socket = null;
+    const serverUrlInput = document.getElementById('server-url');
+    const tokenInput = document.getElementById('jwt-token');
+    const roomIdInput = document.getElementById('room-id');
+    const logsConsole = document.getElementById('console-logs');
+    const socketStatus = document.getElementById('socket-status');
+    
+    const btnConnect = document.getElementById('btn-connect');
+    const btnDisconnect = document.getElementById('btn-disconnect');
+    const btnJoin = document.getElementById('btn-join');
+    const btnSend = document.getElementById('btn-send');
+    const msgContentInput = document.getElementById('msg-content');
+    const messagesList = document.getElementById('messages-list');
+
+    function log(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      const time = new Date().toLocaleTimeString();
+      entry.innerHTML = `[${time}] ${message}`;
+      logsConsole.appendChild(entry);
+      logsConsole.scrollTop = logsConsole.scrollHeight;
+    }
+
+    // Connect WebSocket
+    btnConnect.addEventListener('click', () => {
+      const serverUrl = serverUrlInput.value.trim();
+      const token = tokenInput.value.trim();
+
+      log(`Attempting socket connection to: ${serverUrl}`, 'info');
+      
+      const config = {
+        auth: {}
+      };
+
+      if (token) {
+        config.auth.token = `Bearer ${token}`;
+        log(`Using Bearer Token for connection...`, 'info');
+      } else {
+        log(`Connecting anonymously...`, 'warn');
+      }
+
+      if (socket) {
+        socket.disconnect();
+      }
+
+      socket = io(serverUrl, config);
+
+      socket.on('connect', () => {
+        log(`Socket successfully connected! Socket ID: ${socket.id}`, 'success');
+        socketStatus.textContent = 'Connected';
+        socketStatus.className = 'status-badge connected';
+      });
+
+      socket.on('disconnect', (reason) => {
+        log(`Socket disconnected. Reason: ${reason}`, 'warn');
+        socketStatus.textContent = 'Disconnected';
+        socketStatus.className = 'status-badge';
+        msgContentInput.disabled = true;
+        btnSend.disabled = true;
+      });
+
+      socket.on('connect_error', (error) => {
+        log(`Socket Connection Error: ${error.message}`, 'error');
+        socketStatus.textContent = 'Error';
+        socketStatus.className = 'status-badge';
+      });
+
+      socket.on('newMessage', (message) => {
+        log(`Incoming WebSocket Event [newMessage] received!`, 'success');
+        appendMessage(message);
+      });
+    });
+
+    // Disconnect
+    btnDisconnect.addEventListener('click', () => {
+      if (socket) {
+        socket.disconnect();
+        log('Socket manually disconnected.', 'info');
+      }
+    });
+
+    // Join Room
+    btnJoin.addEventListener('click', () => {
+      if (!socket || !socket.connected) {
+        log('Cannot join room: Socket is not connected.', 'error');
+        alert('Please connect the socket first.');
+        return;
+      }
+      
+      const roomId = roomIdInput.value.trim();
+      if (!roomId) {
+        alert('Please specify a Conversation ID');
+        return;
+      }
+
+      log(`Sending WebSocket event: joinRoom with data: "${roomId}"`, 'info');
+      socket.emit('joinRoom', roomId);
+      log(`Subscribed to Socket.io room: conversation_${roomId}`, 'success');
+
+      // Clear layout chat display and enable message controls
+      messagesList.innerHTML = `<div style="text-align: center; color: var(--accent-success); font-size: 0.85rem; margin-bottom: 8px;">Joined room conversation_${roomId}</div>`;
+      msgContentInput.disabled = false;
+      btnSend.disabled = false;
+      msgContentInput.focus();
+    });
+
+    // Send message via HTTP API
+    btnSend.addEventListener('click', sendMessageAction);
+    msgContentInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendMessageAction();
+      }
+    });
+
+    async function sendMessageAction() {
+      const content = msgContentInput.value.trim();
+      const roomId = roomIdInput.value.trim();
+      const token = tokenInput.value.trim();
+      const serverUrl = serverUrlInput.value.trim();
+
+      if (!content) return;
+      if (!roomId) {
+        alert('Please enter a Conversation ID');
+        return;
+      }
+
+      msgContentInput.value = '';
+      log(`Sending REST API POST message to conversation #${roomId}...`, 'info');
+
+      try {
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`${serverUrl}/api/v1/conversations/${roomId}/messages`, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({ content: content })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.message || 'HTTP API Error');
+        }
+
+        const msgData = await response.json();
+        log(`REST API message success response received. (Check logs/WebSocket to verify relay!)`, 'success');
+      } catch (err) {
+        log(`REST API POST error: ${err.message}`, 'error');
+        alert(`Failed to send message: ${err.message}`);
+      }
+    }
+
+    function appendMessage(msg) {
+      // Remove placeholder empty notice if any
+      const emptyNotice = messagesList.querySelector('div');
+      if (emptyNotice && emptyNotice.textContent.includes('Join a conversation')) {
+        emptyNotice.remove();
+      }
+
+      const bubble = document.createElement('div');
+      
+      // Determine if outgoing (sent by current token) or incoming
+      // In this simple UI, we'll distinguish based on whether a senderId is attached.
+      const isOutgoing = msg.senderId !== null; 
+      
+      bubble.className = `msg-bubble ${isOutgoing ? 'msg-outgoing' : 'msg-incoming'}`;
+      
+      let senderLabel = msg.senderId ? `User #${msg.senderId}` : 'Visitor (Public)';
+      
+      const time = new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      bubble.innerHTML = `
+        <span class="badge-user">${senderLabel}</span>
+        <div>${msg.content}</div>
+        <div class="msg-meta">${time}</div>
+      `;
+
+      messagesList.appendChild(bubble);
+      messagesList.scrollTop = messagesList.scrollHeight;
+    }
+  </script>
+</body>
+</html>
