@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ChatService } from './chat.service';
-import { ChatController } from './chat.controller';
+import { WhatsAppWebhookController } from './whatsapp-webhook.controller';
 import { ConversationsController } from './conversations.controller';
 import { Conversation } from './entities/conversation.entity';
 import { Message } from './entities/message.entity';
@@ -14,7 +14,7 @@ import { LeadsModule } from '../leads/leads.module';
     TypeOrmModule.forFeature([Conversation, Message]),
     LeadsModule,
   ],
-  controllers: [ChatController, ConversationsController],
+  controllers: [WhatsAppWebhookController, ConversationsController],
   providers: [ChatService, ConversationRepository, MessageRepository],
   exports: [ChatService],
 })

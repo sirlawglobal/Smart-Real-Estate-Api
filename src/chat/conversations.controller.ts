@@ -8,7 +8,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
-import { SendMessageDto } from './dto/send-message.dto';
+import { CreateConversationDto } from './dto/create-conversation.dto';
+import { SendMessageContentDto } from './dto/send-message-content.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
 
@@ -24,7 +25,35 @@ export class ConversationsController {
     return this.chatService.getConversations(user);
   }
 
+  @Post()
+  @ApiOperation({ summary: 'Create or find a conversation for a lead' })
+  async createConversation(
+    @Body() dto: CreateConversationDto,
+    @CurrentUser() user: User,
+  ) {
+    const conversation = await this.chatService.createConversation(dto.leadId, user);
+    if (dto.content) {
+      await this.chatService.sendMessage(
+        {
+          conversationId: conversation.id,
+          content: dto.content,
+        },
+        user,
+      );
+    }
+    return conversation;
+  }
+
   @Get(':id')
+  @ApiOperation({ summary: 'Get conversation details' })
+  getConversation(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.chatService.getConversation(id, user);
+  }
+
+  @Get(':id/messages')
   @ApiOperation({ summary: 'Get conversation messages' })
   getConversationMessages(
     @Param('id', ParseIntPipe) id: number,
@@ -37,9 +66,15 @@ export class ConversationsController {
   @ApiOperation({ summary: 'Send message in a conversation' })
   sendMessage(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: Omit<SendMessageDto, 'conversationId'>,
+    @Body() dto: SendMessageContentDto,
     @CurrentUser() user: User,
   ) {
-    return this.chatService.sendMessage({ ...dto, conversationId: id }, user);
+    return this.chatService.sendMessage(
+      {
+        conversationId: id,
+        content: dto.content,
+      },
+      user,
+    );
   }
 }

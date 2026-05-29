@@ -63,6 +63,25 @@ export class ChatService {
       .getMany();
   }
 
+  async getConversation(id: number, _user: User): Promise<Conversation> {
+    const conversation = await this.conversationRepo.findOne({
+      where: { id },
+      relations: { lead: true },
+    });
+    if (!conversation) throw new NotFoundException(`Conversation #${id} not found`);
+    return conversation;
+  }
+
+  async createConversation(leadId: number, user: User): Promise<Conversation> {
+    let conversation = await this.conversationRepo.findByLead(leadId);
+    if (!conversation) {
+      const lead = await this.leadsService.findOne(leadId, user);
+      conversation = await this.conversationRepo.createAndSave({ leadId: lead.id });
+    }
+    return conversation;
+  }
+
+
   async getConversationMessages(id: number, _user: User): Promise<Message[]> {
     const conversation = await this.conversationRepo.findOne({
       where: { id },
