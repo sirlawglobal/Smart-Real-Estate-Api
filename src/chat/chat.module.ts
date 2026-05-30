@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ChatService } from './chat.service';
 import { WhatsAppWebhookController } from './whatsapp-webhook.controller';
@@ -14,7 +14,7 @@ import { QueuesModule } from '../queues/queues.module';
   imports: [
     TypeOrmModule.forFeature([Conversation, Message]),
     LeadsModule,
-    QueuesModule,
+    forwardRef(() => QueuesModule),
   ],
   controllers: [WhatsAppWebhookController, ConversationsController],
   providers: [ChatService, ConversationRepository, MessageRepository],
