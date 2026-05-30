@@ -8,4 +8,5 @@ export default registerAs('database', () => ({
   database: process.env.DB_DATABASE || 'realestate_db',
   sslCa: process.env.DB_SSL_CA || undefined,
   sslRejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true',
+  synchronize: process.env.DB_SYNCHRONIZE ? process.env.DB_SYNCHRONIZE === 'true' : process.env.NODE_ENV === 'development',
 }));

@@ -42,7 +42,7 @@ import * as fs from 'fs';
           ssl,
           entities: [__dirname + '/../**/*.entity{.ts,.js}'],
           migrations: [__dirname + '/migrations/*{.ts,.js}'],
-          synchronize: configService.get<string>('app.nodeEnv') === 'development',
+          synchronize: configService.get<boolean>('database.synchronize'),
           logging: configService.get<string>('app.nodeEnv') === 'development',
           charset: 'utf8mb4',
           timezone: 'Z',
