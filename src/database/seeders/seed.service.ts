@@ -36,8 +36,20 @@ export class SeedService {
     // Clear existing data (Be careful in production!)
     await this.clearDatabase();
 
-    // 1. Seed Users (1 Admin)
+    // 1. Seed Users (Admin, Agents, Buyers)
     const admin = await this.seedUsers();
+
+    // 2. Seed Properties
+    const properties = await this.seedProperties();
+
+    // 3. Seed Leads
+    const leads = await this.seedLeads(properties);
+
+    // 4. Seed Chats
+    await this.seedChats(leads);
+
+    // 5. Seed Favorites & Notifications
+    await this.seedFavoritesAndNotifications(properties);
 
     this.logger.log('Seeding completed successfully!');
   }
@@ -70,6 +82,40 @@ export class SeedService {
     });
     const savedAdmin = await this.userRepo.save(admin);
     this.logger.log(`Admin created: admin@realestate.com / Admin@123`);
+
+    // 5 Agents
+    const agentPassword = await bcrypt.hash('Agent@123', 12);
+    for (let i = 1; i <= 5; i++) {
+      await this.userRepo.save(
+        this.userRepo.create({
+          firstName: faker.person.firstName(),
+          lastName: faker.person.lastName(),
+          email: `agent${i}@realestate.com`,
+          password: agentPassword,
+          role: UserRole.AGENT,
+          isActive: true,
+          phone: faker.phone.number(),
+        }),
+      );
+    }
+    this.logger.log(`5 Agents created (agent1@realestate.com to agent5@realestate.com with Agent@123)`);
+
+    // 10 Buyers
+    const buyerPassword = await bcrypt.hash('Buyer@123', 12);
+    for (let i = 1; i <= 10; i++) {
+      await this.userRepo.save(
+        this.userRepo.create({
+          firstName: faker.person.firstName(),
+          lastName: faker.person.lastName(),
+          email: `buyer${i}@example.com`,
+          password: buyerPassword,
+          role: UserRole.BUYER,
+          isActive: true,
+          phone: faker.phone.number(),
+        }),
+      );
+    }
+    this.logger.log(`10 Buyers created (buyer1@example.com to buyer10@example.com with Buyer@123)`);
 
     return savedAdmin;
   }

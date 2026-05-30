@@ -2,9 +2,10 @@ import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { QueuesService } from './queues.service';
-import { LeadQualificationProcessor, EmailProcessor } from './queues.processor';
 import { LeadsModule } from '../leads/leads.module';
 import { AiModule } from '../ai/ai.module';
+import { ChatModule } from '../chat/chat.module';
+import { AiProcessingProcessor, LeadQualificationProcessor, EmailProcessor } from './queues.processor';
 
 @Module({
   imports: [
@@ -27,8 +28,9 @@ import { AiModule } from '../ai/ai.module';
     ),
     forwardRef(() => LeadsModule),
     forwardRef(() => AiModule),
+    forwardRef(() => ChatModule),
   ],
-  providers: [QueuesService, LeadQualificationProcessor, EmailProcessor],
+  providers: [QueuesService, LeadQualificationProcessor, EmailProcessor, AiProcessingProcessor],
   exports: [QueuesService, BullModule],
 })
 export class QueuesModule {}

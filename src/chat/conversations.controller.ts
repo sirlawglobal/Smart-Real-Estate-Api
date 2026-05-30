@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   ParseIntPipe,
@@ -10,14 +11,17 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { SendMessageContentDto } from './dto/send-message-content.dto';
+import { ToggleAiDto } from './dto/toggle-ai.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
 import { User } from '../users/entities/user.entity';
+import { UserRole } from '../users/enums/user-role.enum';
 
 @ApiTags('Conversations')
 @ApiBearerAuth()
 @Controller('conversations')
 export class ConversationsController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(private readonly chatService: ChatService) { }
 
   @Get()
   @ApiOperation({ summary: 'Get all conversations for user' })
@@ -76,5 +80,15 @@ export class ConversationsController {
       },
       user,
     );
+  }
+
+  @Patch(':id/toggle-ai')
+  @Roles(UserRole.AGENT, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Toggle AI auto-response status on/off' })
+  async toggleAi(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ToggleAiDto,
+  ) {
+    return this.chatService.toggleAi(id, dto.isAiActive);
   }
 }

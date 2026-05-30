@@ -25,6 +25,9 @@ export class Conversation {
   @OneToMany(() => Message, (message) => message.conversation)
   messages: Message[];
 
+  @Column({ name: 'is_ai_active', default: true })
+  isAiActive: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

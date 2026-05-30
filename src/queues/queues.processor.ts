@@ -1,10 +1,11 @@
 import { Process, Processor } from '@nestjs/bull';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject, forwardRef } from '@nestjs/common';
 import { Job } from 'bull';
 import * as nodemailer from 'nodemailer';
 import axios from 'axios';
 import { LeadsService } from '../leads/leads.service';
 import { AiService } from '../ai/ai.service';
+import { ChatService } from '../chat/chat.service';
 import { LeadPriority } from '../leads/enums/lead.enum';
 
 @Processor('lead_qualification_queue')
@@ -153,6 +154,75 @@ export class EmailProcessor {
     } catch (error) {
       this.logger.error(`Failed to send email to ${to}: ${error.message}`, error.stack);
       throw error;
+    }
+  }
+}
+
+@Processor('ai_processing_queue')
+export class AiProcessingProcessor {
+  private readonly logger = new Logger(AiProcessingProcessor.name);
+
+  constructor(
+    @Inject(forwardRef(() => ChatService))
+    private readonly chatService: ChatService,
+    private readonly aiService: AiService,
+  ) {}
+
+  @Process('processAiTask')
+  async handleAiTask(job: Job) {
+    const { conversationId, messageContent } = job.data;
+    this.logger.log(`Processing AI auto-respond for conversation #${conversationId}`);
+
+    try {
+      // 1. Fetch conversation history (for memory)
+      const messages = await this.chatService.getConversationMessages(conversationId, undefined);
+      // Keep last 10 messages to avoid token overflow
+      const recentMessages = messages.slice(-10);
+
+      const formattedHistory = recentMessages
+        .map((m) => {
+          const sender = m.senderId ? 'Agent' : m.isAi ? 'Temple AI' : 'Customer';
+          return `${sender}: ${m.content}`;
+        })
+        .join('\n');
+
+      // 2. Fetch RAG recommendations based on user message
+      const recommendationsResult = await this.aiService.recommendations(messageContent);
+      const recommendations = recommendationsResult.recommendations || [];
+
+      const formattedProps = recommendations
+        .map(
+          (p) =>
+            `- Title: ${p.title}\n  Price: ₦${p.price.toLocaleString()}\n  Location: ${p.city}, ${p.state}\n  Bedrooms: ${p.bedrooms}\n  Bathrooms: ${p.bathrooms}\n  Details: ${p.description}`,
+        )
+        .join('\n\n');
+
+      // 3. Format prompt for the LLM
+      const systemPrompt = `You are "Temple AI", a helpful and polite AI assistant for a premium real estate agency.
+Your goal is to answer the customer's questions, guide them to properties that match their interests from the list below, and try to schedule a viewing or request their email/phone if they are a guest.
+
+Guidelines:
+- Only discuss properties from the "Matching Properties" list provided below. Do not invent properties, prices, or locations.
+- If no matching properties are provided, politely ask them for their budget, preferred location, and bedroom count to search the database.
+- Keep your replies concise and friendly (2-3 sentences max).
+
+Matching Properties:
+${formattedProps || 'No properties currently match this search.'}
+
+Conversation History:
+${formattedHistory}`;
+
+      const userMessage = `${systemPrompt}\n\nCustomer: ${messageContent}\nTemple AI:`;
+
+      // 4. Generate response
+      const chatResponse = await this.aiService.chat(userMessage);
+      const reply = chatResponse.response.trim();
+
+      // 5. Deliver response
+      await this.chatService.sendWhatsAppReply(conversationId, reply);
+      this.logger.log(`AI auto-response delivered to conversation #${conversationId}`);
+    } catch (error) {
+      this.logger.error(`Failed to process AI auto-response for conversation #${conversationId}: ${error.message}`, error.stack);
     }
   }
 }

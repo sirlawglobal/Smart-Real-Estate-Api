@@ -15,7 +15,8 @@ import { Public } from '../common/decorators/public.decorator';
 @ApiTags('WhatsApp Webhook')
 @Controller('webhooks/whatsapp')
 export class WhatsAppWebhookController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(private readonly chatService: ChatService) { }
+
 
   @Public()
   @Post()
@@ -27,6 +28,8 @@ export class WhatsAppWebhookController {
     await this.chatService.handleWhatsAppWebhook(body);
     return res.status(HttpStatus.OK).send('EVENT_RECEIVED');
   }
+
+
 
   @Public()
   @Get()

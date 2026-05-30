@@ -30,6 +30,9 @@ export class Message {
   @Column({ name: 'sender_id', type: 'int', nullable: true })
   senderId: number | null;
 
+  @Column({ name: 'is_ai', default: false })
+  isAi: boolean;
+
   @Column({ type: 'text' })
   content: string;
 
