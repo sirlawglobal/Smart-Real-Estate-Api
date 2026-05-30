@@ -1,8 +1,9 @@
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AiProvider } from './providers/ai-provider.interface';
 import { OpenAiProvider } from './providers/openai.provider';
 import { GeminiProvider } from './providers/gemini.provider';
+import { GroqProvider } from './providers/groq.provider';
 import { PropertiesService } from '../properties/properties.service';
 
 @Injectable()
@@ -13,11 +14,14 @@ export class AiService {
     private readonly configService: ConfigService,
     private readonly openaiProvider: OpenAiProvider,
     private readonly geminiProvider: GeminiProvider,
+    private readonly groqProvider: GroqProvider,
     private readonly propertiesService: PropertiesService,
   ) {
-    const providerName = this.configService.get<string>('ai.provider') || 'openai';
+    const providerName = this.configService.get<string>('ai.provider') || 'groq';
     if (providerName === 'gemini') {
       this.provider = this.geminiProvider;
+    } else if (providerName === 'groq') {
+      this.provider = this.groqProvider;
     } else {
       this.provider = this.openaiProvider;
     }
