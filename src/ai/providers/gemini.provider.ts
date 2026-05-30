@@ -17,7 +17,7 @@ export class GeminiProvider implements AiProvider {
   async chat(prompt: string): Promise<string> {
     try {
       const model = this.genAI.getGenerativeModel({
-        model: this.configService.get<string>('ai.geminiModel') || 'gemini-1.5-flash',
+        model: this.configService.get<string>('ai.geminiModel') || 'gemini-2.0-flash',
       });
       const result = await model.generateContent(prompt);
       const response = await result.response;
@@ -31,7 +31,7 @@ export class GeminiProvider implements AiProvider {
   async extractIntent(message: string): Promise<any> {
     try {
       const model = this.genAI.getGenerativeModel({
-        model: this.configService.get<string>('ai.geminiModel') || 'gemini-1.5-flash',
+        model: this.configService.get<string>('ai.geminiModel') || 'gemini-2.0-flash',
       });
       const prompt = `Extract intent from the user message. Output must be raw JSON with no markdown wrapping. Keys should be: location (string), budget (number), bedrooms (number), propertyType (string). If a value is not found, omit the key or set to null. Example: {"location":"Lekki","budget":150000000,"bedrooms":4,"propertyType":"duplex"}
       
@@ -49,7 +49,7 @@ export class GeminiProvider implements AiProvider {
   async qualifyLead(data: any): Promise<{ score: number; priority: string }> {
     try {
       const model = this.genAI.getGenerativeModel({
-        model: this.configService.get<string>('ai.geminiModel') || 'gemini-1.5-flash',
+        model: this.configService.get<string>('ai.geminiModel') || 'gemini-2.0-flash',
       });
       const prompt = `Qualify this lead based on the following data: ${JSON.stringify(data)}.
       Return raw JSON with 'score' (0-100) and 'priority' (LOW, MEDIUM, HOT).
