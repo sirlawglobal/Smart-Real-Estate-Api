@@ -27,6 +27,38 @@ export class OpenAiProvider implements AiProvider {
     }
   }
 
+  async chatWithContext(message: string, context: string): Promise<string> {
+    try {
+      const systemPrompt = context.trim()
+        ? `You are a professional real estate assistant for a Nigerian real estate platform.
+Answer the user's question based ONLY on the property listings provided below.
+Be helpful, concise, and conversational. Format all prices in Nigerian Naira (₦) with commas.
+When referencing a property, mention its title, location, price, and key details.
+If the user's exact search criteria don't perfectly match any listing, show the closest matches and note the difference.
+If there are truly no relevant listings at all, say: "We don't currently have listings matching your exact criteria. Please try a different location or adjust your budget."
+Do NOT invent properties, prices, or details that are not in the listings below.
+
+=== AVAILABLE PROPERTY LISTINGS ===
+${context}
+=== END OF LISTINGS ===`
+        : `You are a professional real estate assistant for a Nigerian real estate platform.
+We currently have no property listings available that match the user's search.
+Politely inform the user and suggest they try a different location, property type, or budget range, or contact our support team.`;
+
+      const response = await this.openai.chat.completions.create({
+        model: this.configService.get<string>('ai.openaiModel') || 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message },
+        ],
+      });
+      return response.choices[0].message.content || '';
+    } catch (error) {
+      this.logger.error('OpenAI Chat With Context Error:', error);
+      throw error;
+    }
+  }
+
   async extractIntent(message: string): Promise<any> {
     try {
       const response = await this.openai.chat.completions.create({
