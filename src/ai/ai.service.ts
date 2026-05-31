@@ -64,6 +64,17 @@ export class AiService {
     return { response };
   }
 
+  /**
+   * Directly sends a pre-formatted prompt to the AI provider,
+   * bypassing the RAG (database query and intent extraction) pipeline.
+   * Useful when the caller already managed context assembly.
+   */
+  async chatDirect(prompt: string): Promise<{ response: string }> {
+    if (!prompt) throw new BadRequestException('Prompt is required');
+    const response = await this.provider.chat(prompt);
+    return { response };
+  }
+
   async extractIntent(message: string) {
     if (!message) throw new BadRequestException('Message is required');
     const intent = await this.provider.extractIntent(message);

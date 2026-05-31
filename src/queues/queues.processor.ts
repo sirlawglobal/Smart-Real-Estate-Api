@@ -166,7 +166,7 @@ export class AiProcessingProcessor {
     @Inject(forwardRef(() => ChatService))
     private readonly chatService: ChatService,
     private readonly aiService: AiService,
-  ) {}
+  ) { }
 
   @Process('processAiTask')
   async handleAiTask(job: Job) {
@@ -215,7 +215,7 @@ ${formattedHistory}`;
       const userMessage = `${systemPrompt}\n\nCustomer: ${messageContent}\nTemple AI:`;
 
       // 4. Generate response
-      const chatResponse = await this.aiService.chat(userMessage);
+      const chatResponse = await this.aiService.chatDirect(userMessage);
       const reply = chatResponse.response.trim();
 
       // 5. Deliver response
